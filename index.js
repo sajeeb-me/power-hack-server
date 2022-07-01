@@ -26,6 +26,12 @@ async function run() {
             // }
             res.send({ success: true, data: billing })
         })
+        app.get('/api/billing-list/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const billing = await billingCollection.findOne(query)
+            res.send(billing)
+        })
 
         // post billing
         app.post('/api/add-billing', async (req, res) => {
@@ -38,7 +44,7 @@ async function run() {
         })
 
         // patch billing
-        app.patch('api/update-billing/:id', async (req, res) => {
+        app.patch('/api/update-billing/:id', async (req, res) => {
             const id = req.params.id;
             if (!id) {
                 return res.send({ success: false, error: 'Id is not provided' })
@@ -51,6 +57,17 @@ async function run() {
             };
             const result = await billingCollection.updateOne(filter, updateDoc);
             res.send({ success: true, message: result })
+        })
+
+        // delete
+        app.delete('/api/delete-billing/:id', async (req, res) => {
+            const id = req.params.id;
+            if (!id) {
+                return res.send({ success: false, error: 'Id is not provided' })
+            }
+            const filter = { _id: ObjectId(id) };
+            const result = await billingCollection.deleteOne(filter);
+            res.send({ success: true, message: 'Bill deleted' })
         })
 
     }
