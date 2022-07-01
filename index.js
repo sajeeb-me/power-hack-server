@@ -20,11 +20,20 @@ async function run() {
 
         // get billing
         app.get('/api/billing-list', async (req, res) => {
-            const billing = await billingCollection.find().toArray()
-            // if (!billing.length) {
-            //     return res.send({ success: false, error: 'No Product Found' })
-            // }
+            const page = parseInt(req.query.page);
+            const size = parseInt(req.query.size);
+            let billing;
+            if (page || size) {
+                billing = (await billingCollection.find().skip(page * size).limit(size).toArray()).reverse();
+            }
+            else {
+                billing = (await billingCollection.find().toArray()).reverse();
+            }
             res.send({ success: true, data: billing })
+        })
+        app.get('/api/billing-count', async (req, res) => {
+            const totalBill = await billingCollection.estimatedDocumentCount()
+            res.send({ totalBill })
         })
         app.get('/api/billing-list/:id', async (req, res) => {
             const id = req.params.id;
@@ -50,7 +59,6 @@ async function run() {
                 return res.send({ success: false, error: 'Id is not provided' })
             }
             const billing = req.body;
-            console.log(billing);
             const filter = { _id: ObjectId(id) };
             const updateDoc = {
                 $set: billing
