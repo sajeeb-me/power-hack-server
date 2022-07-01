@@ -21,14 +21,20 @@ async function run() {
         // get billing
         app.get('/api/billing-list', async (req, res) => {
             const billing = await billingCollection.find().toArray()
-            res.send(billing)
+            // if (!billing.length) {
+            //     return res.send({ success: false, error: 'No Product Found' })
+            // }
+            res.send({ success: true, data: billing })
         })
 
         // post billing
         app.post('/api/add-billing', async (req, res) => {
             const billing = req.body;
+            if (!billing.email || !billing.amount) {
+                return res.send({ success: false, error: 'Please provide all information' })
+            }
             const result = await billingCollection.insertOne(billing);
-            res.send(result)
+            res.send({ success: true, message: `Successfully added new bill` })
         })
 
     }
