@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -35,6 +35,22 @@ async function run() {
             }
             const result = await billingCollection.insertOne(billing);
             res.send({ success: true, message: `Successfully added new bill` })
+        })
+
+        // patch billing
+        app.patch('api/update-billing/:id', async (req, res) => {
+            const id = req.params.id;
+            if (!id) {
+                return res.send({ success: false, error: 'Id is not provided' })
+            }
+            const billing = req.body;
+            console.log(billing);
+            const filter = { _id: ObjectId(id) };
+            const updateDoc = {
+                $set: billing
+            };
+            const result = await billingCollection.updateOne(filter, updateDoc);
+            res.send({ success: true, message: result })
         })
 
     }
