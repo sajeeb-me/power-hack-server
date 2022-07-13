@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 require('dotenv').config();
+const bcrypt = require('bcrypt');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
@@ -17,8 +18,9 @@ async function run() {
     try {
         await client.connect();
         const billingCollection = client.db("database").collection("billings");
+        const userCollection = client.db("database").collection("users");
 
-        // get billing
+        // get 
         app.get('/api/billing-list', async (req, res) => {
             const page = parseInt(req.query.page);
             const size = parseInt(req.query.size);
@@ -42,7 +44,12 @@ async function run() {
             res.send(billing)
         })
 
-        // post billing
+        app.get('/users', async (req, res) => {
+            const users = await userCollection.find().toArray();
+            res.send(users)
+        })
+
+        // post
         app.post('/api/add-billing', async (req, res) => {
             const billing = req.body;
             if (!billing.email || !billing.amount) {
@@ -51,8 +58,50 @@ async function run() {
             const result = await billingCollection.insertOne(billing);
             res.send({ success: true, message: `Successfully added new bill` })
         })
+        app.post('/signup', async (req, res) => {
+            // console.log(req.body);
+            try {
+                const hashedPassword = await bcrypt.hash(req.body.password, 10)
+                const email = req.body.email;
+                const signedUpUser = {
+                    firstName: req.body.firstName,
+                    lastName: req.body.lastName,
+                    email: req.body.email,
+                    pass: hashedPassword
+                }
+                const alreadyExist = await userCollection.findOne({ email });
+                if (alreadyExist) {
+                    res.status(500).send({ message: 'User already exist' })
+                }
+                else {
+                    const user = await userCollection.insertOne(signedUpUser)
+                    res.send(user)
+                }
+            } catch {
+                res.status(500).send()
+            }
+        })
+        app.post('/login', async (req, res) => {
+            const email = req.body.email;
+            const pass = req.body.password;
+            const isUser = await userCollection.findOne({ email });
+            // console.log(isUser.pass);
+            if (!isUser) {
+                return res.status(500).send({ message: "User not found" })
+            }
+            try {
+                const isValidPass = await bcrypt.compare(pass, isUser.pass);
+                if (!isValidPass) {
+                    res.status(500).send({ message: "Wrong password" })
+                } else {
+                    res.status(200).send({ success: true })
+                }
+            } catch {
+                return res.status(500).send({ message: "User not found" })
+            }
+        })
 
-        // patch billing
+        // patch
         app.patch('/api/update-billing/:id', async (req, res) => {
             const id = req.params.id;
             if (!id) {
@@ -67,7 +116,7 @@ async function run() {
             res.send({ success: true, message: result })
         })
 
-        // delete
+        // delete 
         app.delete('/api/delete-billing/:id', async (req, res) => {
             const id = req.params.id;
             if (!id) {
@@ -77,6 +126,8 @@ async function run() {
             const result = await billingCollection.deleteOne(filter);
             res.send({ success: true, message: 'Bill deleted' })
         })
+
+
 
     }
     catch (error) {
